@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADS测试地图 - 带序号和图片弹窗</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .container {
+            display: flex;
+            flex: 1;
+            gap: 20px;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .sidebar {
+            width: 300px;
+            background: #f8f9fa;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 1px solid #e9ecef;
+        }
+        
+        .sidebar h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4a6fa5;
+        }
+        
+        .location-list {
+            list-style: none;
+        }
+        
+        .location-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .location-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            background: #e3f2fd;
+        }
+        
+        .location-item.active {
+            background: #4a6fa5;
+            color: white;
+        }
+        
+        .location-number {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background: #4a6fa5;
+            color: white;
+            border-radius: 50%;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        
+        .location-item.active .location-number {
+            background: white;
+            color: #4a6fa5;
+        }
+        
+        .location-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .map-container {
+            flex: 1;
+            position: relative;
+            min-height: 600px;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .controls {
+            display: flex;
+            padding: 15px;
+            background: #f5f5f5;
+            border-bottom: 1px solid #ddd;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .controls button {
+            padding: 10px 15px;
+            background: #4a6fa5;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .controls button:hover {
+            background: #3a5a8c;
+            transform: translateY(-2px);
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #4a6fa5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        .custom-marker {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border: 3px solid white;
+            object-fit: cover;
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+        
+        .marker-container {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .marker-number {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #e74c3c;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* 信息窗口样式 */
+        .amap-info-content {
+            padding: 0 !important;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            max-width: 350px !important;
+        }
+        
+        .popup-header {
+            background: #4a6fa5;
+            color: white;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .popup-number {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            background: white;
+            color: #4a6fa5;
+            border-radius: 50%;
+            font-weight: bold;
+        }
+        
+        .popup-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .popup-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        
+        .popup-content {
+            padding: 15px;
+        }
+        
+        .popup-description {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+        
+        .popup-details {
+            display: flex;
+            justify-content: space-between;
+            color: #777;
+            font-size: 13px;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+        
+        .footer {
+            margin-top: 20px;
+            color: white;
+            text-align: center;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                max-height: 300px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1><i class="fas fa-map-marked-alt"></i> ADS测试地图</h1>
+        <p>点击侧边栏序号或地图标记点查看详细信息</p>
+    </div>
+    
+    <div class="container">
+        <div class="sidebar">
+            <h2><i class="fas fa-list-ol"></i> 地点列表</h2>
+            <ul class="location-list" id="locationList">
+                <!-- 地点列表将通过JavaScript动态生成 -->
+            </ul>
+        </div>
+        
+        <div class="map-container">
+            <div class="controls">
+                <button id="resetView"><i class="fas fa-home"></i> 重置视图</button>
+                <button id="zoomIn"><i class="fas fa-search-plus"></i> 放大</button>
+                <button id="zoomOut"><i class="fas fa-search-minus"></i> 缩小</button>
+                <button id="toggleSidebar"><i class="fas fa-bars"></i> 切换侧边栏</button>
+            </div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>地图加载中...</p>
+            </div>
+            <div id="map"></div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p> 2025 ADS4.0测试地图 | 使用高德地图</p>
+    </div>
+
+    <!-- 引入高德地图JS API -->
+    <script src="https://webapi.amap.com/maps?v=2.0&key=0d1b0e80c64c34282f2a4094ea28e2df"></script>
+    <script>
+        // 地点数据
+        const locations = [
+            {
+                id: 1,
+                title: '复盛站',
+                description: '描述：存在台阶',
+                icon: 'D:/跟进清单/ADS测试/测试地图/负向障碍物.jpg',
+                coordinates: [106.80,29.66],
+                type: '负向障碍物',
+                date: '2025-11-15'
+            },
+			{
+				id: 2,
+				title: '龙兴超级工厂',
+				description: '描述：断头路',
+				
+				coordinates: [106.778810, 29.742835],
+				type: '断头路',
+				date: '2025-11-15'
+			},
+			{
+				id: 3,
+				title: '铜锣大道',
+				description: '描述：城快场景，长直路',
+				coordinates: [106.749584, 29.702622],
+			 type: '城快道路',
+				date: '2025-11-15'
+			},
+			{
+				id: 4,
+			title: '特来电充电站',
+				description: '描述：露天无车位线停车场',
+				coordinates: [106.793199, 29.679886],
+				type: '室外停车场',
+				date: '2025-11-15'
+			},
+			{
+				id: 5,
+				title: '好客万家商城停车场',
+				description: '描述：有三处闸机',
+				coordinates: [106.788389, 29.713675],
+				type: '闸机',
+				date: '2025-11-15'
+			},
+			{
+				id: 6,
+				title: '民权路与瓷器街交汇处',
+				description: '描述：低矮红绿灯，侧向安装',
+				coordinates: [106.575266, 29.554578],
+				type: '安装角度不当的红绿灯',
+				date: '2025-11-15'
+			},
+			
+		
+        ];
+
+        // 全局变量
+        let map;
+        let markers = [];
+        let infoWindows = [];
+        let activeInfoWindow = null;
+
+        // 初始化地图
+        function initMap() {
+            map = new AMap.Map('map', {
+                zoom: 12,
+                center: [106.562881, 29.556742], // 重庆中心坐标
+                viewMode: '3D'
+            });
+
+            // 地图加载完成后添加标记点
+            map.on('complete', function() {
+                document.getElementById('loading').style.display = 'none';
+                addMarkers();
+                createLocationList();
+            });
+
+            // 地图加载错误处理
+            map.on('error', function(e) {
+                console.error('地图加载错误:', e);
+                document.getElementById('loading').innerHTML = 
+                    '<p>地图加载失败，请检查API Key或网络连接</p>';
+            });
+        }
+
+        // 添加标记点到地图
+        function addMarkers() {
+            locations.forEach(location => {
+                // 创建自定义标记点
+                const markerContent = document.createElement('div');
+                markerContent.className = 'marker-container';
+                
+                const markerImg = document.createElement('img');
+                markerImg.className = 'custom-marker';
+                markerImg.src = location.icon;
+                
+                // 添加序号指示器
+                const numberIndicator = document.createElement('div');
+                numberIndicator.className = 'marker-number';
+                numberIndicator.textContent = location.id;
+                
+                markerContent.appendChild(markerImg);
+                markerContent.appendChild(numberIndicator);
+                
+                // 创建信息窗口内容
+                const infoContent = `
+                    <div class="popup-container">
+                        <div class="popup-header">
+                            <div class="popup-number">${location.id}</div>
+                            <div class="popup-title">${location.title}</div>
+                        </div>
+                        <img class="popup-image" src="${location.icon}" alt="${location.title}">
+                        <div class="popup-content">
+                            <p class="popup-description">${location.description}</p>
+                            <div class="popup-details">
+                                <span><i class="fas fa-tag"></i> ${location.type}</span>
+                                <span><i class="far fa-calendar"></i> ${location.date}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // 创建信息窗口
+                const infoWindow = new AMap.InfoWindow({
+                    content: infoContent,
+                    offset: new AMap.Pixel(0, -30)
+                });
+                
+                // 创建标记点
+                const marker = new AMap.Marker({
+                    position: location.coordinates,
+                    content: markerContent,
+                    offset: new AMap.Pixel(-25, -25)
+                });
+                
+                // 添加点击事件
+                marker.on('click', function() {
+                    // 关闭其他信息窗口
+                    if (activeInfoWindow) {
+                        activeInfoWindow.close();
+                    }
+                    
+                    // 打开当前信息窗口
+                    infoWindow.open(map, marker.getPosition());
+                    activeInfoWindow = infoWindow;
+                    
+                    // 高亮对应的列表项
+                    highlightListItem(location.id);
+                });
+                
+                // 将标记点添加到地图
+                map.add(marker);
+                
+                // 保存标记点和信息窗口引用
+                markers.push(marker);
+                infoWindows.push({
+                    id: location.id,
+                    window: infoWindow,
+                    marker: marker
+                });
+            });
+        }
+
+        // 创建地点列表
+        function createLocationList() {
+            const locationList = document.getElementById('locationList');
+            locationList.innerHTML = '';
+            
+            locations.forEach(location => {
+                const listItem = document.createElement('li');
+                listItem.className = 'location-item';
+                listItem.setAttribute('data-id', location.id);
+                
+                listItem.innerHTML = `
+                    <div class="location-number">${location.id}</div>
+                    <div class="location-name">${location.title}</div>
+                `;
+                
+                // 添加点击事件
+                listItem.addEventListener('click', function() {
+                    const locationId = parseInt(this.getAttribute('data-id'));
+                    openLocationPopup(locationId);
+                    highlightListItem(locationId);
+                });
+                
+                locationList.appendChild(listItem);
+            });
+        }
+
+        // 打开地点弹窗
+        function openLocationPopup(locationId) {
+            // 关闭其他信息窗口
+            if (activeInfoWindow) {
+                activeInfoWindow.close();
+            }
+            
+            // 找到对应的信息窗口
+            const infoWindowObj = infoWindows.find(item => item.id === locationId);
+            if (infoWindowObj) {
+                // 打开信息窗口
+                infoWindowObj.window.open(map, infoWindowObj.marker.getPosition());
+                activeInfoWindow = infoWindowObj.window;
+                
+                // 将地图中心移动到标记点位置
+                map.setCenter(infoWindowObj.marker.getPosition());
+                map.setZoom(15);
+            }
+        }
+
+        // 高亮列表项
+        function highlightListItem(locationId) {
+            // 移除所有active类
+            document.querySelectorAll('.location-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // 为当前项添加active类
+            const activeItem = document.querySelector(`.location-item[data-id="${locationId}"]`);
+            if (activeItem) {
+                activeItem.classList.add('active');
+            }
+        }
+
+        // 初始化
+        window.onload = function() {
+            initMap();
+            
+            // 添加控制按钮事件
+            document.getElementById('resetView').addEventListener('click', function() {
+                map.setZoomAndCenter(12, [106.562881, 29.556742]);
+                map.setPitch(0);
+                map.setRotation(0);
+            });
+            
+            document.getElementById('zoomIn').addEventListener('click', function() {
+                map.zoomIn();
+            });
+            
+            document.getElementById('zoomOut').addEventListener('click', function() {
+                map.zoomOut();
+            });
+            
+            document.getElementById('toggleSidebar').addEventListener('click', function() {
+                const sidebar = document.querySelector('.sidebar');
+                sidebar.style.display = sidebar.style.display === 'none' ? 'block' : 'none';
+            });
+        };
+    </script>
+</body>
+</html> 
